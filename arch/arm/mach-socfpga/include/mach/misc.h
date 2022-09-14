@@ -40,9 +40,7 @@ void socfpga_init_security_policies(void);
 void socfpga_sdram_remap_zero(void);
 #endif
 
-#if defined(CONFIG_ARCH_SOCFPGA_STRATIX10) || \
-	defined(CONFIG_ARCH_SOCFPGA_AGILEX) || \
-	defined(CONFIG_ARCH_SOCFPGA_AGILEX7M)
+#if defined(CONFIG_ARCH_SOCFPGA_SOC64)
 int is_fpga_config_ready(void);
 #endif
 
