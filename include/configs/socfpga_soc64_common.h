@@ -56,6 +56,11 @@
 
 #define BOOTENV_DEV_QSPI(devtypeu, devtypel, instance) \
 	"bootcmd_qspi=ubi detach; sf probe && " \
+	"setenv mtdids 'nor0=nor0,nand0=nand.0' && " \
+	"setenv mtdparts 'mtdparts=nor0:66m(u-boot),190m(root); " \
+	"nand.0:2m(nand_uboot),500m(nand_root)' && " \
+	"env select UBI; saveenv && " \
+	"ubi part root && " \
 	"if ubi part root && ubi readvol ${scriptaddr} script; " \
 	"then echo QSPI: Running script from UBIFS; " \
 	"elif sf read ${scriptaddr} ${qspiscriptaddr} ${scriptsize}; " \
