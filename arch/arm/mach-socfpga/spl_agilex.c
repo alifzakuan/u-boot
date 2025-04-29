@@ -24,16 +24,40 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+u32 reset_flag(void)
+{
+	/* Check rstmgr.stat for warm reset status */
+	u32 status = readl(SOCFPGA_RSTMGR_ADDRESS);
+
+	/* Check whether any L4 watchdogs or SDM had triggered warm reset */
+	u32 warm_reset_mask = RSTMGR_L4WD_MPU_WARMRESET_MASK;
+
+	if (status & warm_reset_mask)
+		return 0;
+
+	return 1;
+}
+
 void board_init_f(ulong dummy)
 {
 	int ret;
 	struct udevice *dev;
 
+	/* Enable Async */
+	asm volatile("msr daifclr, #4");
+
+#ifdef CONFIG_SPL_BUILD
+	spl_save_restore_data();
+#endif
+
 	ret = spl_early_init();
 	if (ret)
 		hang();
 
+	socfpga_get_sys_mgr_addr("sysmgr@ffd12000");
 	socfpga_get_managers_addr();
+
+	sysmgr_pinmux_init();
 
 	/* Ensure watchdog is paused when debugging is happening */
 	writel(SYSMGR_WDDBG_PAUSE_ALL_CPU,
