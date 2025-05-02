@@ -92,7 +92,13 @@ void board_init_f(ulong dummy)
 	print_reset_info();
 	cm_print_clock_quick_summary();
 
-	firewall_setup();
+
+	ret = uclass_get_device_by_name(UCLASS_NOP, "socfpga-firewall-config", &dev);
+	if (ret) {
+		printf("HPS firewall settings init failed: %d\n", ret);
+		hang();
+	}
+
 	ret = uclass_get_device(UCLASS_CACHE, 0, &dev);
 	if (ret) {
 		debug("CCU init failed: %d\n", ret);

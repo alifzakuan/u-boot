@@ -39,6 +39,13 @@
  * U-Boot environment configurations
  */
 
+ /*
+ * NAND support
+ */
+
+#define CONFIG_SYS_NAND_U_BOOT_SIZE	(1 * 1024 * 1024)
+#define CONFIG_SYS_NAND_U_BOOT_DST	CONFIG_SYS_TEXT_BASE
+
 /*
  * Environment variable
  */
