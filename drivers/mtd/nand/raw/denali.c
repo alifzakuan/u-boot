@@ -1377,6 +1377,17 @@ free_buf:
 }
 
 #ifdef CONFIG_SPL_BUILD
+struct mtd_info *nand_get_mtd(void)
+{
+	struct mtd_info *mtd;
+
+	mtd = get_nand_dev_by_index(nand_curr_device);
+	if (!mtd)
+		hang();
+
+	return mtd;
+}
+
 int nand_spl_load_image(u32 offset, u32 len, void *dst)
 {
 	size_t count = len, actual = 0, page_align_overhead = 0;
@@ -1388,9 +1399,7 @@ int nand_spl_load_image(u32 offset, u32 len, void *dst)
 	if (!len || !dst)
 		return -EINVAL;
 
-	mtd = get_nand_dev_by_index(nand_curr_device);
-	if (!mtd)
-		hang();
+	mtd = nand_get_mtd();
 
 	if ((offset & (mtd->writesize - 1)) != 0) {
 		page_buffer = malloc_cache_aligned(mtd->writesize);

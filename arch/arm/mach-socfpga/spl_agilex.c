@@ -92,10 +92,15 @@ void board_init_f(ulong dummy)
 	print_reset_info();
 	cm_print_clock_quick_summary();
 
-
-	ret = uclass_get_device_by_name(UCLASS_NOP, "socfpga-firewall-config", &dev);
+	ret = uclass_get_device_by_name(UCLASS_NOP, "socfpga-system-mgr-firewall", &dev);
 	if (ret) {
-		printf("HPS firewall settings init failed: %d\n", ret);
+		printf("System manager firewall configuration failed: %d\n", ret);
+		hang();
+	}
+
+	ret = uclass_get_device_by_name(UCLASS_NOP, "socfpga-l3interconnect-firewall", &dev);
+	if (ret) {
+		printf("L3 interconnect firewall configuration failed: %d\n", ret);
 		hang();
 	}
 
