@@ -600,8 +600,14 @@ static u64 agilex72_gppll_vco_hz_from_regs(u32 pll_base, u32 glob_reg,
 	u64 vco;
 
 	mode = agilex72_gppll_synth_mode(cfg1, cfg2, cfg5);
-	if (mode != AGILEX72_GPPLL_SYNTH_EQ1)
+	if (mode != AGILEX72_GPPLL_SYNTH_EQ1) {
+		if (IS_ENABLED(CONFIG_TARGET_SOCFPGA_EMU)) {
+			pr_warn("agilex72-clkmgr: %s synth mode %d not decoded on EMU (cfg1=0x%08x cfg2=0x%08x cfg5=0x%08x)\n",
+				pll_name, mode, cfg1, cfg2, cfg5);
+			return 0;
+		}
 		agilex72_gppll_hang_bad_synth(pll_name, cfg1, cfg2, cfg5, mode);
+	}
 
 	if (!fref || !n_div || !mult)
 		return 0;
@@ -1220,15 +1226,28 @@ void agilex72_clkmgr_virtual_platform_minimal_init(void)
 }
 
 /*
- * Simics / silicon: refresh VCO and C-div from locked PLL CSRs.
- * CLKMGR-top mux/div/gate stay CSR-backed.
+ * EMU: no preset or pll_enable MMIO. TB TIP_DRIVEGATE forces pllcout;
+ * GPPLL VCO/C-div CFG are not driven (zeros decode as bogus C=512).
+ * Keep VCO+C-div goldens; CLKMGR-top mux/div/gate are still CSR-backed.
  */
 int agilex72_clkmgr_refresh_rates_from_csr_if_locked(void)
 {
 	u32 stat = agilex72_readl(AGILEX72_CLKMGR_STAT);
 
-	if ((stat & AGILEX72_CLKMGR_STAT_ALL_LOCKED) ==
-	    AGILEX72_CLKMGR_STAT_ALL_LOCKED) {
+	if (IS_ENABLED(CONFIG_TARGET_SOCFPGA_EMU)) {
+		/*
+		 * EMU: TB forces peri/main pllcout (1000/500/400, 1850,
+		 * 2500). Keep compile-time AGILEX72_* VCO and C-div goldens
+		 * so parents match those nets. Do not refresh_c_from_csr()
+		 * — CFG zeros decode as C=512. Do not set valid (no CSR
+		 * VCO decode). Enable fabric_csr_trusted so mux/div/gate
+		 * get_rate walks CLKMGR CSRs.
+		 */
+		agilex72_rate_state.fabric_csr_trusted = true;
+		agilex72_clkmgr_pll_locked = true;
+		(void)stat;
+	} else if ((stat & AGILEX72_CLKMGR_STAT_ALL_LOCKED) ==
+		   AGILEX72_CLKMGR_STAT_ALL_LOCKED) {
 		agilex72_clkmgr_refresh_vco_from_csr();
 		agilex72_clkmgr_refresh_c_from_csr();
 		agilex72_rate_state.fabric_csr_trusted = true;
@@ -1237,7 +1256,10 @@ int agilex72_clkmgr_refresh_rates_from_csr_if_locked(void)
 		return agilex72_pll_wait_lock();
 	}
 
-	pr_info("agilex72-clkmgr: rates from CSR (no GPPLL reprogram)\n");
+	if (IS_ENABLED(CONFIG_TARGET_SOCFPGA_EMU))
+		pr_info("agilex72-clkmgr: EMU rates (VCO+C-div goldens, fabric CSR)\n");
+	else
+		pr_info("agilex72-clkmgr: rates from CSR (no GPPLL reprogram)\n");
 	pr_info("  GPPLL0 VCO %llu Hz  C %u/%u/%u/%u\n",
 		agilex72_rate_state.gppll0_vco_hz,
 		agilex72_rate_state.gppll0_c0_div,
@@ -1268,7 +1290,15 @@ void agilex72_clkmgr_print_rate_state(void)
 	       !!(stat & AGILEX72_CLKMGR_STAT_PLL1_LOCKED),
 	       !!(stat & AGILEX72_CLKMGR_STAT_PLL2_LOCKED));
 
-	if (!state || !state->valid) {
+	/*
+	 * EMU: fabric may be trusted while VCO remains compile-time
+	 * goldens (valid stays false). Print goldens, not "decode failed".
+	 */
+	if (IS_ENABLED(CONFIG_TARGET_SOCFPGA_EMU) &&
+	    state && state->fabric_csr_trusted && !state->valid) {
+		printf("GPPLL rates (EMU VCO+C-div goldens, fabric CSR trusted, stat=0x%08x):\n",
+		       stat);
+	} else if (!state || !state->valid) {
 		static const struct {
 			u32 base;
 			const char *name;
@@ -1287,9 +1317,12 @@ void agilex72_clkmgr_print_rate_state(void)
 			printf("  %s cfg1=0x%08x cfg23=0x%08x\n", plls[i].name, cfg1, cfg23);
 		}
 		return;
+	} else if (IS_ENABLED(CONFIG_TARGET_SOCFPGA_EMU)) {
+		printf("GPPLL rates (EMU, VCO CSR/KV valid, stat=0x%08x):\n",
+		       stat);
+	} else {
+		printf("GPPLL CSR rates (Simics readback, no reprogram):\n");
 	}
-
-	printf("GPPLL CSR rates (Simics readback, no reprogram):\n");
 
 	printf("  GPPLL0 VCO %llu kHz  C %u/%u/%u/%u\n",
 	       state->gppll0_vco_hz / 1000,

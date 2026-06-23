@@ -32,14 +32,23 @@ int cm_set_qspi_controller_clk_hz(u32 clk_hz);
 #endif
 
 /*
- * Simics and silicon use the production handoff path (embedded demo blob
- * or the platform handoff). The emulator VP shortcut lives on the
- * emulator branch.
+ * Agilex 72 CONFIG_TARGET_SOCFPGA_EMU: skip full GPPLL preset MMIO and
+ * GPPLL CFG VCO/C-div decode (TB forces pllcout). Boot-mode exit +
+ * VCO+C-div goldens; mux / div / gate from CSRs. See spl_agilex72.c
+ * and agilex72_clkmgr_virtual_platform_minimal_init().
  */
 #if IS_ENABLED(CONFIG_ARCH_SOCFPGA_AGILEX72)
+/*
+ * Production handoff path (embedded demo blob or non-VP-minimal EMU): not the
+ * Simics VP shortcut that skips full GPPLL preset programming.
+ */
 static inline bool agilex72_clkmgr_production_handoff_path(void)
 {
-	return true;
+	if (IS_ENABLED(CONFIG_AGILEX72_CLKMGR_HANDOFF_EMBED_DEMO))
+		return true;
+
+	return !(IS_ENABLED(CONFIG_TARGET_SOCFPGA_EMU) &&
+		 IS_ENABLED(CONFIG_TARGET_SOCFPGA_AGILEX72_SOCDK));
 }
 
 void agilex72_clkmgr_virtual_platform_minimal_init(void);
