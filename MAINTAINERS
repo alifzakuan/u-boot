@@ -180,6 +180,8 @@ F:	cmd/socfpga_rsu.c
 F:	configs/socfpga_*
 F:	doc/board/intel/
 F:	doc/device-tree-bindings/misc/altr,socfpga-rsu.yaml
+F:	doc/develop/agilex72-*
+F:	drivers/clk/altera/
 F:	drivers/ddr/altera/
 F:	drivers/misc/socfpga_rsu.c
 F:	drivers/power/domain/altr-pmgr-agilex5.c
