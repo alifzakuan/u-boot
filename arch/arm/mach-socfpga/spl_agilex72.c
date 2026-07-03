@@ -22,6 +22,16 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+/* EMU + AGILEX72_SOCDK without EMBED_DEMO — see board_init_f(). */
+static bool spl_agilex72_clkmgr_vp_minimal(void)
+{
+	if (IS_ENABLED(CONFIG_AGILEX72_CLKMGR_HANDOFF_EMBED_DEMO))
+		return false;
+
+	return IS_ENABLED(CONFIG_TARGET_SOCFPGA_EMU) &&
+	       IS_ENABLED(CONFIG_TARGET_SOCFPGA_AGILEX72_SOCDK);
+}
+
 u32 reset_flag(u32 flag)
 {
 	/* Check rstmgr.stat for warm reset status */
@@ -81,7 +91,6 @@ void board_init_f(ulong dummy)
 
 	/* TODO ubootAgilex72 */
 	// socfpga_pinmux_init();
-
 	/* Ensure watchdog is paused when debugging is happening */
 	writel(SYSMGR_WDDBG_PAUSE_ALL_CPU,
 	       socfpga_get_sysmgr_addr() + SYSMGR_SOC64_WDDBG);
@@ -93,14 +102,21 @@ void board_init_f(ulong dummy)
 	// mbox_hps_stage_notify(HPS_EXECUTION_STATE_FSBL);
 
 	/*
-	 * Agilex 72 CLKMGR bring-up:
+	 * Agilex 72 CLKMGR bring-up dispatch (first match wins):
 	 *
-	 *   CONFIG_AGILEX72_CLKMGR_HANDOFF_EMBED_DEMO: binary blob via
+	 *   0. spl_agilex72_clkmgr_vp_minimal(): EMU + AGILEX72_SOCDK without
+	 *	embed demo — boot-mode exit, VCO+C-div goldens (TB
+	 *	pllcout), fabric
+	 *	mux/div/gate from CSRs; no handoff blob.
+	 *
+	 *   1. CONFIG_AGILEX72_CLKMGR_HANDOFF_EMBED_DEMO: binary blob via
 	 *	clk_mgr_init_from_blob() (REG_ABS + KV_STRING parser).
 	 *
-	 *   No producer enabled: hang().
+	 *   2. No producer enabled: hang().
 	 */
-	if (IS_ENABLED(CONFIG_AGILEX72_CLKMGR_HANDOFF_EMBED_DEMO)) {
+	if (spl_agilex72_clkmgr_vp_minimal()) {
+		agilex72_clkmgr_virtual_platform_minimal_init();
+	} else if (IS_ENABLED(CONFIG_AGILEX72_CLKMGR_HANDOFF_EMBED_DEMO)) {
 		clk_mgr_init_from_blob();
 	} else {
 		printf("AGILEX72: no CLKMGR handoff producer configured\n");
@@ -112,16 +128,22 @@ void board_init_f(ulong dummy)
 		hang();
 	}
 
-	/*
-	 * Enable watchdog as early as possible before initializing other
-	 * component. Watchdog need to be enabled after clock driver because
-	 * it will retrieve the clock frequency from clock driver.
-	 */
-	if (CONFIG_IS_ENABLED(WDT))
-		initr_watchdog();
+	if (!IS_ENABLED(CONFIG_TARGET_SOCFPGA_EMU)) {
+		/*
+		 * Enable watchdog as early as possible before initializing other
+		 * component. Watchdog need to be enabled after clock driver because
+		 * it will retrieve the clock frequency from clock driver.
+		 */
+		if (CONFIG_IS_ENABLED(WDT))
+			initr_watchdog();
+	}
 
 	preloader_console_init();
 	print_reset_info();
+
+	if (IS_ENABLED(CONFIG_TARGET_SOCFPGA_EMU) &&
+	    IS_ENABLED(CONFIG_TARGET_SOCFPGA_AGILEX72_SOCDK))
+		agilex72_clkmgr_print_rate_state();
 
 	cm_print_clock_quick_summary();
 
