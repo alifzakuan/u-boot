@@ -193,8 +193,11 @@ config AGILEX72_CLKMGR_HANDOFF_EMBED_DEMO
 	  Default-off. With this disabled the parser is built but
 	  inert (no caller, no blob source).
 
-config TARGET_SOCFPGA_AGILEX5_EMU
-	bool "Enable build that bootable only on Agilex5 Emulator"
+config TARGET_SOCFPGA_EMU
+	bool "Enable build that bootable only on socfpga Emulator"
+	help
+	  Enable a build that is bootable only on the SoCFPGA emulation
+	  platform, used for pre-silicon software bring-up and testing.
 
 config TARGET_SOCFPGA_AGILEX5_MODULAR
 	bool "Enable build that bootable only on Agilex5 Modular DevKit"
