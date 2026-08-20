@@ -1,0 +1,26 @@
+// SPDX-License-Identifier:     GPL-2.0
+/*
+ * Copyright (C) 2025 Altera Corporation <www.altera.com>
+ */
+#include "socfpga_agilex72_socdk.dts"
+
+&uart0 {
+	/delete-property/ clocks;
+	clock-frequency = <18432000>;
+};
+
+&mmc {
+	status = "disabled";
+};
+
+&combophy0 {
+	status = "disabled";
+};
+
+&mmc1 {
+	status = "disabled";
+};
+
+&combophy1 {
+	status = "disabled";
+};

@@ -452,6 +452,7 @@ dtb-$(CONFIG_ARCH_SOCFPGA) +=				\
 	socfpga_cyclone5_ac550soc.dtb			\
 	socfpga_agilex72_socdk.dtb				\
 	socfpga_agilex72_socdk_emmc.dtb			\
+	socfpga_agilex72_socdk_emu.dtb			\
 	socfpga_n5x_socdk.dtb				\
 	socfpga_stratix10_socdk.dtb			\
 	socfpga_stratix10_socdk_nand.dtb		\

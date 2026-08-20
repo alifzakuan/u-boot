@@ -1,0 +1,28 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * U-Boot additions for AGILEX72 SocDK EMU
+ */
+
+#include "socfpga_agilex72_socdk-u-boot.dtsi"
+
+/ {
+	model = "SoCFPGA AGILEX72 EMU SoCDK";
+	chosen {
+		u-boot,spl-boot-order = "/memory";
+	};
+};
+
+&xspi {
+	status = "disabled";
+};
+
+&sdm_xspi {
+
+	status = "disabled";
+};
+
+#if !defined(CONFIG_SOCFPGA_SECURE_VAB_AUTH)
+&fdt_0_blob {
+	filename = "arch/arm/dts/socfpga_agilex72_socdk_emu.dtb";
+};
+#endif
