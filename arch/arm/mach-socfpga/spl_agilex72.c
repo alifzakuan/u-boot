@@ -106,7 +106,7 @@ void board_init_f(ulong dummy)
 	 *
 	 *   0. spl_agilex72_clkmgr_vp_minimal(): EMU + AGILEX72_SOCDK without
 	 *	embed demo — boot-mode exit, VCO+C-div goldens (TB
-	 *	pllcout), fabric
+	 *	pllcout), LSPNOC_FREE_CTR FSBL-stand-in (cnt=0), fabric
 	 *	mux/div/gate from CSRs; no handoff blob.
 	 *
 	 *   1. CONFIG_AGILEX72_CLKMGR_HANDOFF_EMBED_DEMO: binary blob via

@@ -1219,9 +1219,33 @@ void agilex72_disable_boot_clk_bypass(void)
 		     AGILEX72_PERICTL_EXTCNTRST_RELEASE);
 }
 
+/*
+ * EMU VP-minimal stand-in for FSBL / handoff REG_ABS on lspnocclk
+ * (HAS 0x108). POR leaves cnt=1 (div2); SYSPRESET0 bin1 needs cnt=0
+ * (div1), src=0 (pll_parent). Not a rate golden — program the CSR so
+ * fabric-trust get_rate matches DV. Drop once handoff REG_ABS covers this.
+ */
+static void agilex72_clkmgr_emu_apply_lspnoc_free_ctr_bin1(void)
+{
+	u32 addr = SOCFPGA_CLKMGR_ADDRESS + AGILEX72_CLKMGR_LSPNOC_FREE_CTR;
+	u32 before = agilex72_readl(addr);
+	u32 after = before;
+
+	after &= ~(AGILEX72_CLKMGR_FREE_CTR_CNT_MASK |
+		   AGILEX72_CLKMGR_FREE_CTR_SRC_MASK);
+	if (after == before)
+		return;
+
+	agilex72_writel(after, addr);
+	printf("clkmgr: EMU FSBL-stand-in LSPNOC_FREE_CTR 0x%08x -> 0x%08x (cnt=0 src=0)\n",
+	       before, after);
+}
+
 void agilex72_clkmgr_virtual_platform_minimal_init(void)
 {
 	agilex72_disable_boot_clk_bypass();
+	if (IS_ENABLED(CONFIG_TARGET_SOCFPGA_EMU))
+		agilex72_clkmgr_emu_apply_lspnoc_free_ctr_bin1();
 	agilex72_clkmgr_refresh_rates_from_csr_if_locked();
 }
 
@@ -1229,6 +1253,7 @@ void agilex72_clkmgr_virtual_platform_minimal_init(void)
  * EMU: no preset or pll_enable MMIO. TB TIP_DRIVEGATE forces pllcout;
  * GPPLL VCO/C-div CFG are not driven (zeros decode as bogus C=512).
  * Keep VCO+C-div goldens; CLKMGR-top mux/div/gate are still CSR-backed.
+ * VP-minimal also programs LSPNOC_FREE_CTR (see above).
  */
 int agilex72_clkmgr_refresh_rates_from_csr_if_locked(void)
 {
