@@ -22,7 +22,7 @@ defaults:
 
 jobs:
   ci-pipeline:
-    uses: altera-innersource/applications.devops.build-bot.github-pr-workflow/.github/workflows/uboot-ci-pipeline.yml@cicd-2026.07
+    uses: altera-innersource/applications.devops.build-bot.github-pr-workflow/.github/workflows/uboot-ci-pipeline.yml@main-cicd-2026.07
     secrets:
       GIT_USER: ${{ secrets.GIT_USER }}
       GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
