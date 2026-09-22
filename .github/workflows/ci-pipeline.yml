@@ -5,7 +5,7 @@ name: altera-uboot-ci-pipeline
 
 on:
   pull_request:
-    branches: [ "socfpga_v*" ]
+    branches: [ "socfpga_*" ]
     types: [opened, synchronize, reopened, review_requested, review_submission]
 
   # Allows to run this workflow manually from the Actions tab
