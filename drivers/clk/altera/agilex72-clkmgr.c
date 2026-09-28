@@ -1241,19 +1241,69 @@ static void agilex72_clkmgr_emu_apply_lspnoc_free_ctr_bin1(void)
 	       before, after);
 }
 
+/*
+ * EMU VP-minimal stand-in for FSBL / handoff REG_ABS on the GPPLL rate
+ * CSRs (SYSPRESET0 bin1, same words as tools/agilex72-handoff-gen.py).
+ * POR leaves cfg at zero, which decodes as C=512. Linux reads these
+ * CSRs directly, so program cfg_1, the C counters, and cfg_23. cfg2/cfg5
+ * stay untouched: U-Boot still uses the VCO+C-div goldens and must not
+ * refresh_vco_from_csr() / refresh_c_from_csr() on this path. Drop once
+ * handoff REG_ABS covers these registers on the VP path.
+ *
+ * GPPLL1 0x024 is cfg_9 (0x00800901); cfg_23 is 0x05c (0x20800000).
+ * GPPLL1 cfg_10 is included so C1 is div1 rather than a reset C=512.
+ */
+static void agilex72_clkmgr_emu_apply_gppll_bin1(void)
+{
+	static const struct {
+		u32 addr;
+		u32 val;
+	} regs[] = {
+		{ AGILEX72_CLKPLL0_BASE + AGILEX72_GPPLL_CFG1_OFF, 0x01400301 },
+		{ AGILEX72_CLKPLL0_BASE + AGILEX72_GPPLL_CFG9_OFF, 0x00800801 },
+		{ AGILEX72_CLKPLL0_BASE + AGILEX72_GPPLL_CFG10_OFF, 0x01008004 },
+		{ AGILEX72_CLKPLL0_BASE + AGILEX72_GPPLL_CFG11_OFF, 0x00100702 },
+		{ AGILEX72_CLKPLL0_BASE + AGILEX72_GPPLL_CFG12_OFF, 0x00120201 },
+		{ AGILEX72_CLKPLL0_BASE + AGILEX72_GPPLL_CFG23_OFF, 0x20000000 },
+		{ AGILEX72_CLKPLL1_BASE + AGILEX72_GPPLL_CFG1_OFF, 0x01200301 },
+		{ AGILEX72_CLKPLL1_BASE + AGILEX72_GPPLL_CFG9_OFF, 0x00800901 },
+		{ AGILEX72_CLKPLL1_BASE + AGILEX72_GPPLL_CFG10_OFF, 0x80804004 },
+		{ AGILEX72_CLKPLL1_BASE + AGILEX72_GPPLL_CFG23_OFF, 0x20800000 },
+		{ AGILEX72_CLKPLL2_BASE + AGILEX72_GPPLL_CFG1_OFF, 0x01900301 },
+		{ AGILEX72_CLKPLL2_BASE + AGILEX72_GPPLL_CFG9_OFF, 0x00800901 },
+		{ AGILEX72_CLKPLL2_BASE + AGILEX72_GPPLL_CFG10_OFF, 0x80804004 },
+		{ AGILEX72_CLKPLL2_BASE + AGILEX72_GPPLL_CFG23_OFF, 0x20000000 },
+	};
+	size_t i;
+
+	for (i = 0; i < ARRAY_SIZE(regs); i++) {
+		u32 before = agilex72_readl(regs[i].addr);
+
+		if (before == regs[i].val)
+			continue;
+
+		agilex72_writel(regs[i].val, regs[i].addr);
+		printf("clkmgr: EMU FSBL-stand-in GPPLL 0x%08x 0x%08x -> 0x%08x\n",
+		       regs[i].addr, before, regs[i].val);
+	}
+}
+
 void agilex72_clkmgr_virtual_platform_minimal_init(void)
 {
 	agilex72_disable_boot_clk_bypass();
-	if (IS_ENABLED(CONFIG_TARGET_SOCFPGA_EMU))
+	if (IS_ENABLED(CONFIG_TARGET_SOCFPGA_EMU)) {
 		agilex72_clkmgr_emu_apply_lspnoc_free_ctr_bin1();
+		agilex72_clkmgr_emu_apply_gppll_bin1();
+	}
 	agilex72_clkmgr_refresh_rates_from_csr_if_locked();
 }
 
 /*
- * EMU: no preset or pll_enable MMIO. TB TIP_DRIVEGATE forces pllcout;
- * GPPLL VCO/C-div CFG are not driven (zeros decode as bogus C=512).
- * Keep VCO+C-div goldens; CLKMGR-top mux/div/gate are still CSR-backed.
- * VP-minimal also programs LSPNOC_FREE_CTR (see above).
+ * EMU: no pll_enable MMIO. TB TIP_DRIVEGATE forces pllcout.
+ * VP-minimal writes the SYSPRESET0 bin1 GPPLL rate CSRs and
+ * LSPNOC_FREE_CTR so Linux/CSR readers match handoff. Keep VCO+C-div
+ * goldens (cfg2/cfg5 are not programmed). CLKMGR-top mux/div/gate
+ * stay CSR-backed.
  */
 int agilex72_clkmgr_refresh_rates_from_csr_if_locked(void)
 {
@@ -1264,9 +1314,11 @@ int agilex72_clkmgr_refresh_rates_from_csr_if_locked(void)
 		 * EMU: TB forces peri/main pllcout (1000/500/400, 1850,
 		 * 2500). Keep compile-time AGILEX72_* VCO and C-div goldens
 		 * so parents match those nets. Do not refresh_c_from_csr()
-		 * — CFG zeros decode as C=512. Do not set valid (no CSR
-		 * VCO decode). Enable fabric_csr_trusted so mux/div/gate
-		 * get_rate walks CLKMGR CSRs.
+		 * or refresh_vco_from_csr(): cfg2/cfg5 are still unprogrammed,
+		 * so synth-mode decode would fail. Do not set valid. Enable
+		 * fabric_csr_trusted so mux/div/gate get_rate walks CLKMGR
+		 * CSRs. The rate CSRs themselves are written by
+		 * agilex72_clkmgr_emu_apply_gppll_bin1().
 		 */
 		agilex72_rate_state.fabric_csr_trusted = true;
 		agilex72_clkmgr_pll_locked = true;
