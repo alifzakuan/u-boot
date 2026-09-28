@@ -1288,20 +1288,60 @@ static void agilex72_clkmgr_emu_apply_gppll_bin1(void)
 	}
 }
 
+/*
+ * EMU VP-minimal stand-in for CLKMGR-top ping-pong counters, PLL bypass
+ * masks, and mainpllgrp.nocdiv. Counters and bypass are 0 (div1, PLL
+ * parent, bypass clear). nocdiv 0x00800000 is the SYSPRESET0 bin1 word:
+ * apu_sysfreeclk field 2 at bits [23:22], which decodes as div4.
+ * Linux reads these CSRs directly. Drop once handoff REG_ABS covers
+ * them on the VP path.
+ */
+static void agilex72_clkmgr_emu_apply_clkmgr_top_bin1(void)
+{
+	static const struct {
+		u32 off;
+		u32 val;
+	} regs[] = {
+		{ AGILEX72_CLKMGR_COMP0_CTR, 0 },
+		{ AGILEX72_CLKMGR_CORE2_CTR, 0 },
+		{ AGILEX72_CLKMGR_CORE3_CTR, 0 },
+		{ AGILEX72_CLKMGR_DSU_CTR, 0 },
+		{ AGILEX72_CLKMGR_CCU_FREE_CTR, 0 },
+		{ AGILEX72_CLKMGR_MAINPLL_BYPASS, 0 },
+		{ AGILEX72_CLKMGR_PERIPLL_BYPASS, 0 },
+		{ AGILEX72_CLKMGR_MAINPLL_NOCDIV, 0x00800000 },
+	};
+	size_t i;
+
+	for (i = 0; i < ARRAY_SIZE(regs); i++) {
+		u32 addr = SOCFPGA_CLKMGR_ADDRESS + regs[i].off;
+		u32 before = agilex72_readl(addr);
+
+		if (before == regs[i].val)
+			continue;
+
+		agilex72_writel(regs[i].val, addr);
+		printf("clkmgr: EMU FSBL-stand-in CLKMGR 0x%08x 0x%08x -> 0x%08x\n",
+		       addr, before, regs[i].val);
+	}
+}
+
 void agilex72_clkmgr_virtual_platform_minimal_init(void)
 {
 	agilex72_disable_boot_clk_bypass();
 	if (IS_ENABLED(CONFIG_TARGET_SOCFPGA_EMU)) {
 		agilex72_clkmgr_emu_apply_lspnoc_free_ctr_bin1();
 		agilex72_clkmgr_emu_apply_gppll_bin1();
+		agilex72_clkmgr_emu_apply_clkmgr_top_bin1();
 	}
 	agilex72_clkmgr_refresh_rates_from_csr_if_locked();
 }
 
 /*
  * EMU: no pll_enable MMIO. TB TIP_DRIVEGATE forces pllcout.
- * VP-minimal writes the SYSPRESET0 bin1 GPPLL rate CSRs and
- * LSPNOC_FREE_CTR so Linux/CSR readers match handoff. Keep VCO+C-div
+ * VP-minimal writes the SYSPRESET0 bin1 GPPLL rate CSRs,
+ * LSPNOC_FREE_CTR, the CLKMGR-top ping-pong counters, main/peri bypass
+ * masks, and mainpllgrp.nocdiv (apu_sysfreeclk div4). Keep VCO+C-div
  * goldens (cfg2/cfg5 are not programmed). CLKMGR-top mux/div/gate
  * stay CSR-backed.
  */

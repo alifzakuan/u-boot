@@ -107,8 +107,9 @@ void board_init_f(ulong dummy)
 	 *   0. spl_agilex72_clkmgr_vp_minimal(): EMU + AGILEX72_SOCDK without
 	 *	embed demo — boot-mode exit, VCO+C-div goldens (TB
 	 *	pllcout), LSPNOC_FREE_CTR and GPPLL rate-CSR FSBL-stand-in
-	 *	(SYSPRESET0 bin1), fabric mux/div/gate from CSRs; no handoff
-	 *	blob.
+	 *	(SYSPRESET0 bin1), CLKMGR-top ping-pong/bypass cleared to 0
+	 *	and nocdiv apu_sysfreeclk div4, fabric mux/div/gate from
+	 *	CSRs; no handoff blob.
 	 *
 	 *   1. CONFIG_AGILEX72_CLKMGR_HANDOFF_EMBED_DEMO: binary blob via
 	 *	clk_mgr_init_from_blob() (REG_ABS + KV_STRING parser).
