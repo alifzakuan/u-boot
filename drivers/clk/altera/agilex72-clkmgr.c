@@ -1250,7 +1250,9 @@ static void agilex72_clkmgr_emu_apply_lspnoc_free_ctr_bin1(void)
  * refresh_vco_from_csr() / refresh_c_from_csr() on this path. Drop once
  * handoff REG_ABS covers these registers on the VP path.
  *
- * GPPLL1 0x024 is cfg_9 (0x00800901); cfg_23 is 0x05c (0x20800000).
+ * GPPLL1 0x024 is cfg_9 (0x00800901); cfg_23 is 0x05c (0x00800000),
+ * matching collateral profiles.syspreset0 / syspreset0_cfg.c (not the
+ * older GPPLL*.c cookie that used 0x20800000 / 0x20000000).
  * GPPLL1 cfg_10 is included so C1 is div1 rather than a reset C=512.
  */
 static void agilex72_clkmgr_emu_apply_gppll_bin1(void)
@@ -1264,15 +1266,15 @@ static void agilex72_clkmgr_emu_apply_gppll_bin1(void)
 		{ AGILEX72_CLKPLL0_BASE + AGILEX72_GPPLL_CFG10_OFF, 0x01008004 },
 		{ AGILEX72_CLKPLL0_BASE + AGILEX72_GPPLL_CFG11_OFF, 0x00100702 },
 		{ AGILEX72_CLKPLL0_BASE + AGILEX72_GPPLL_CFG12_OFF, 0x00120201 },
-		{ AGILEX72_CLKPLL0_BASE + AGILEX72_GPPLL_CFG23_OFF, 0x20000000 },
+		{ AGILEX72_CLKPLL0_BASE + AGILEX72_GPPLL_CFG23_OFF, 0x00000000 },
 		{ AGILEX72_CLKPLL1_BASE + AGILEX72_GPPLL_CFG1_OFF, 0x01200301 },
 		{ AGILEX72_CLKPLL1_BASE + AGILEX72_GPPLL_CFG9_OFF, 0x00800901 },
 		{ AGILEX72_CLKPLL1_BASE + AGILEX72_GPPLL_CFG10_OFF, 0x80804004 },
-		{ AGILEX72_CLKPLL1_BASE + AGILEX72_GPPLL_CFG23_OFF, 0x20800000 },
+		{ AGILEX72_CLKPLL1_BASE + AGILEX72_GPPLL_CFG23_OFF, 0x00800000 },
 		{ AGILEX72_CLKPLL2_BASE + AGILEX72_GPPLL_CFG1_OFF, 0x01900301 },
 		{ AGILEX72_CLKPLL2_BASE + AGILEX72_GPPLL_CFG9_OFF, 0x00800901 },
 		{ AGILEX72_CLKPLL2_BASE + AGILEX72_GPPLL_CFG10_OFF, 0x80804004 },
-		{ AGILEX72_CLKPLL2_BASE + AGILEX72_GPPLL_CFG23_OFF, 0x20000000 },
+		{ AGILEX72_CLKPLL2_BASE + AGILEX72_GPPLL_CFG23_OFF, 0x00000000 },
 	};
 	size_t i;
 
