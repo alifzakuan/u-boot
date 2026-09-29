@@ -1328,12 +1328,19 @@ static void agilex72_clkmgr_emu_apply_clkmgr_top_bin1(void)
 
 void agilex72_clkmgr_virtual_platform_minimal_init(void)
 {
-	agilex72_disable_boot_clk_bypass();
+	/*
+	 * Program GPPLL rate CSRs and CLKMGR-top counters/bypass/nocdiv
+	 * before agilex72_disable_boot_clk_bypass(): that helper exits
+	 * bootmode and then releases EXTCNTRST. Releasing DSU/CCU/CPU
+	 * (and peri) counter resets before cnt is programmed violates
+	 * the bring-up order (cnt first, then release).
+	 */
 	if (IS_ENABLED(CONFIG_TARGET_SOCFPGA_EMU)) {
-		agilex72_clkmgr_emu_apply_lspnoc_free_ctr_bin1();
 		agilex72_clkmgr_emu_apply_gppll_bin1();
 		agilex72_clkmgr_emu_apply_clkmgr_top_bin1();
+		agilex72_clkmgr_emu_apply_lspnoc_free_ctr_bin1();
 	}
+	agilex72_disable_boot_clk_bypass();
 	agilex72_clkmgr_refresh_rates_from_csr_if_locked();
 }
 
