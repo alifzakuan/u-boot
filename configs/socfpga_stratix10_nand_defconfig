@@ -1,0 +1,4 @@
+#include <configs/socfpga_stratix10_defconfig>
+
+CONFIG_DEFAULT_DEVICE_TREE="socfpga_stratix10_socdk_nand"
+CONFIG_OF_LIST="socfpga_stratix10_socdk_nand"
