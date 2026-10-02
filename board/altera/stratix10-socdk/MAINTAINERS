@@ -7,3 +7,4 @@ F:	include/configs/socfpga_stratix10_socdk.h
 F:	configs/socfpga_stratix10_atf_defconfig
 F:	configs/socfpga_stratix10_defconfig
 F:	configs/socfpga_stratix10_emmc_defconfig
+F:	configs/socfpga_stratix10_nand_defconfig
