@@ -25,3 +25,18 @@
 		};
 	};
 };
+
+&fdt_0_blob {
+	filename = "u-boot.dtb";
+};
+
+&images {
+	/delete-node/ fdt-1;
+	/delete-node/ fdt-2;
+};
+
+&board_config {
+	/delete-node/ board-1;
+	/delete-node/ board-2;
+	/delete-node/ board-4;
+};
